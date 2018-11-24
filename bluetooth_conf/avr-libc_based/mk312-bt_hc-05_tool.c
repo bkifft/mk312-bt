@@ -27,11 +27,12 @@
 void send_uart_cmd(char* command)
 {	
 	FLUSH;
+	lcd_clrscr();
+	lcd_puts(command);
 	uart_puts(command);
 	WAIT;
-	if (uart_getc() != 'O')
+	if ((unsigned char) uart_getc() != 'O')
 	{
-		lcd_puts(command);
 		lcd_puts(" error");
 		exit(1);
 	}
@@ -44,30 +45,32 @@ int main (void)
 
 	lcd_init(LCD_DISP_ON);
 	lcd_puts("init");
+
     uart_init(UART_BAUD_SELECT(38400,F_CPU)); 
 	sei();
 	WAIT;
-	for (i = 1; 1 < 11; ++i)
+	for (i = 1; i < 10; ++i)
 	{
 		lcd_clrscr();
 		lcd_puts("AT try ");
 		itoa(i, buffer, 10);
 		lcd_puts(buffer);
-		
+		lcd_puts("\n");
 		FLUSH;		
 		uart_puts("AT\r\n");
 		WAIT;
-		buffer[0] = uart_getc();
+		buffer[0] = (unsigned char) uart_getc();
 		if (buffer[0] == 'O')
 		{
-			buffer[0] = '\0';
-			continue;
+			buffer[0] = '1';
+			break;
 		}
+		lcd_puts(buffer);
 		WAIT;
 	}
 	
 	lcd_clrscr();
-	if (buffer[0] != '\0')
+	if (buffer[0] != '1')
 	{
 		lcd_puts("AT error");
 		exit(1);
@@ -79,12 +82,14 @@ int main (void)
 	send_uart_cmd("AT+IPSCAN=1024,1,1024,1\r\n"); //increase scan and broadcast interval to save power
 	send_uart_cmd("AT+POLAR=1,1\r\n"); //logic high for activity led
 	send_uart_cmd("AT+PSWD=" STR(PINCODE) "\r\n"); //pin
-	send_uart_cmd("AT+RESET"); //exit config mode by rebooting module
+	send_uart_cmd("AT+RESET\r\n"); //exit config mode by rebooting module
 	
 	lcd_clrscr();
 	lcd_puts("Programming done\n");
+	WAIT;
 	lcd_puts("Sending \"Hello World");
     uart_init(UART_BAUD_SELECT(19200,F_CPU)); 
+
 	while (1)
 	{
 		uart_puts("Hello world from " STR(BTNAME) "\r\n");
